@@ -1,3 +1,4 @@
+import hashlib
 import json
 import os
 import subprocess
@@ -56,6 +57,21 @@ class ReleaseScriptTests(unittest.TestCase):
             / f"decky-chatgpt-community-{package['version']}.zip"
         )
         self.assertTrue(archive.is_file())
+        stable_archive = ROOT / "dist-release" / "decky-chatgpt-community.zip"
+        desktop = ROOT / "dist-release" / "Install-ChatGPT-Community-Decky.desktop"
+        installer = (
+            ROOT / "dist-release" / "install-chatgpt-community-decky.sh"
+        )
+        checksums = ROOT / "dist-release" / "SHA256SUMS"
+        self.assertTrue(stable_archive.is_file())
+        self.assertTrue(desktop.is_file())
+        self.assertTrue(installer.is_file())
+        self.assertTrue(checksums.is_file())
+        expected_checksum = hashlib.sha256(stable_archive.read_bytes()).hexdigest()
+        self.assertEqual(
+            checksums.read_text(encoding="utf-8"),
+            f"{expected_checksum}  decky-chatgpt-community.zip\n",
+        )
 
         with zipfile.ZipFile(archive) as bundle:
             names = set(bundle.namelist())

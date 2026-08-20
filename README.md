@@ -10,7 +10,7 @@ replacement voice implementation.
 
 ## Current status
 
-Version 0.1.2 is the current Steam Deck release. It is verified against ChatGPT
+Version 0.1.3 is the current Steam Deck release. It is verified against ChatGPT
 Community built from official Linux app 26.814.41957.
 
 The official bundle already contains:
@@ -35,10 +35,18 @@ The installer for ChatGPT Community is maintained separately at
 
 ## Install
 
-1. Download the `decky-chatgpt-community-*.zip` file from the latest GitHub release.
-2. Install the zip with Decky Loader's plugin/developer installer.
-3. Restart Decky Loader if the plugin does not appear immediately.
-4. Open Quick Access and select **ChatGPT Community**.
+1. Switch the Steam Deck to **Desktop Mode**.
+2. Download **[Install ChatGPT Community for Decky][desktop-installer]**.
+3. Open the downloaded file and choose **Execute** if SteamOS asks.
+4. Enter the Deck user's sudo password in the visible terminal when prompted.
+5. Return to Gaming Mode, open Quick Access, and select **ChatGPT Community**.
+
+The desktop installer downloads the latest plugin release, verifies its SHA-256
+checksum, safely extracts it, preserves the previous plugin as a backup, and
+restarts Decky Loader. It does not clone this repository.
+
+For manual installation, download `decky-chatgpt-community.zip` and install it
+with Decky Loader's plugin/developer installer.
 
 The plugin does not uninstall or replace your working ChatGPT Community app.
 
@@ -92,6 +100,7 @@ for the verified window.
 - No root Decky backend
 - No screen-coordinate automation
 - No copied OpenAI application payload in this repository or release zip
+- Release ZIP verification before the desktop installer changes Decky files
 
 ## Troubleshooting
 
@@ -112,3 +121,5 @@ non-Steam shortcut and launch it once from Steam so Gamescope owns its window.
 
 MIT. ChatGPT, the official Linux application, and OpenAI services remain the
 property of their respective owners. This is an independent community plugin.
+
+[desktop-installer]: https://github.com/LBR88/decky-chatgpt-community/releases/latest/download/Install-ChatGPT-Community-Decky.desktop
