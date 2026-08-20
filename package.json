@@ -1,0 +1,50 @@
+{
+  "name": "decky-chatgpt-community",
+  "version": "0.1.0",
+  "description": "Control ChatGPT Community and its real Voice Mode from Decky Loader.",
+  "type": "module",
+  "scripts": {
+    "build": "rollup -c",
+    "watch": "rollup -c -w",
+    "test": "python -m unittest discover -s tests -v"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LBR88/decky-chatgpt-community.git"
+  },
+  "keywords": [
+    "decky",
+    "steam-deck",
+    "chatgpt",
+    "voice-mode"
+  ],
+  "author": "LBR88",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/LBR88/decky-chatgpt-community/issues"
+  },
+  "homepage": "https://github.com/LBR88/decky-chatgpt-community#readme",
+  "devDependencies": {
+    "@decky/rollup": "^1.0.2",
+    "@decky/ui": "^4.11.0",
+    "@rollup/rollup-linux-x64-musl": "^4.53.3",
+    "@types/react": "19.1.1",
+    "@types/react-dom": "19.1.1",
+    "rollup": "^4.53.3",
+    "typescript": "^5.6.2"
+  },
+  "dependencies": {
+    "@decky/api": "^1.1.3",
+    "react-icons": "^5.3.0",
+    "tslib": "^2.7.0"
+  },
+  "pnpm": {
+    "peerDependencyRules": {
+      "ignoreMissing": [
+        "react",
+        "react-dom"
+      ]
+    }
+  },
+  "packageManager": "pnpm@9.15.9"
+}

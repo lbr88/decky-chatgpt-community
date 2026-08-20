@@ -1,0 +1,8 @@
+node_modules/
+dist/
+dist-release/
+out/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.DS_Store

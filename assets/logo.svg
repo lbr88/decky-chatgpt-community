@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">ChatGPT Community microphone</title>
+  <rect width="512" height="512" rx="112" fill="#171717"/>
+  <path d="M256 96a72 72 0 0 0-72 72v112a72 72 0 0 0 144 0V168a72 72 0 0 0-72-72Z" fill="#fff"/>
+  <path d="M136 264a16 16 0 0 1 32 0 88 88 0 0 0 176 0 16 16 0 0 1 32 0 120 120 0 0 1-104 119v33h56a16 16 0 0 1 0 32H184a16 16 0 0 1 0-32h56v-33a120 120 0 0 1-104-119Z" fill="#74aa9c"/>
+</svg>
