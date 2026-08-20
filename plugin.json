@@ -5,7 +5,7 @@
   "api_version": 1,
   "publish": {
     "tags": ["chatgpt", "utility"],
-    "description": "Control the installed ChatGPT Community app and its real Voice Mode.",
+    "description": "Use ChatGPT Community Voice Mode while playing on Steam Deck.",
     "image": "https://raw.githubusercontent.com/LBR88/decky-chatgpt-community/main/assets/logo.svg"
   }
 }

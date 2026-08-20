@@ -8,6 +8,16 @@ import {
 import { callable, definePlugin, toaster } from "@decky/api";
 import { useEffect, useState } from "react";
 import { FaMicrophone } from "react-icons/fa";
+import {
+  launchChatGPT,
+  runWithChatGPTForeground,
+  type SteamAppStore,
+  type SteamApps,
+  type SteamDependencies,
+  type SteamNavigation,
+} from "./steam.js";
+
+declare const SteamClient: { Apps: SteamApps };
 
 type PluginStatus = {
   installed: boolean;
@@ -24,13 +34,18 @@ type OperationResult = {
 };
 
 const getStatus = callable<[], PluginStatus>("get_status");
-const openApp = callable<[], OperationResult>("open_app");
 const toggleVoice = callable<[], OperationResult>("toggle_voice");
-const newChat = callable<[], OperationResult>("new_chat");
 const checkUpdates = callable<[], OperationResult>("check_updates");
 
 const menuCloseDelay = () =>
   new Promise<void>((resolve) => window.setTimeout(resolve, 250));
+
+const steamDependencies = (): SteamDependencies => ({
+  apps: SteamClient.Apps,
+  appStore: window.appStore as unknown as SteamAppStore,
+  navigation: Navigation as unknown as SteamNavigation,
+  storage: window.localStorage,
+});
 
 function Content() {
   const [status, setStatus] = useState<PluginStatus | null>(null);
@@ -106,6 +121,11 @@ function Content() {
                 {status.voiceMessage}
               </div>
             ) : null}
+            {compatible ? (
+              <div style={{ opacity: 0.75, marginTop: 4 }}>
+                Voice stays active while you return to your game.
+              </div>
+            ) : null}
           </div>
         </PanelSectionRow>
       </PanelSection>
@@ -115,7 +135,21 @@ function Content() {
           <ButtonItem
             layout="below"
             disabled={busy || !installed}
-            onClick={() => void runOperation("Open ChatGPT", openApp, true)}
+            onClick={() =>
+              void runOperation(
+                "Open ChatGPT",
+                async () => {
+                  const result = await launchChatGPT(steamDependencies());
+                  return {
+                    ok: true,
+                    message: result.created
+                      ? "Added to Steam and opening ChatGPT Community"
+                      : "Opening ChatGPT Community through Steam",
+                  };
+                },
+                true,
+              )
+            }
           >
             Open ChatGPT
           </ButtonItem>
@@ -125,20 +159,25 @@ function Content() {
             layout="below"
             disabled={busy || !installed || !compatible}
             onClick={() =>
-              void runOperation("ChatGPT Voice Mode", toggleVoice, true)
+              void runOperation(
+                "ChatGPT Voice Mode",
+                () =>
+                  runWithChatGPTForeground(
+                    steamDependencies(),
+                    toggleVoice,
+                  ),
+                true,
+              )
             }
           >
             Toggle Voice Mode
           </ButtonItem>
         </PanelSectionRow>
         <PanelSectionRow>
-          <ButtonItem
-            layout="below"
-            disabled={busy || !installed}
-            onClick={() => void runOperation("New Chat", newChat, true)}
-          >
-            New Chat
-          </ButtonItem>
+          <div style={{ width: "100%", opacity: 0.75 }}>
+            Voice Mode briefly switches to ChatGPT, toggles the live voice
+            session, then returns to the game that was already running.
+          </div>
         </PanelSectionRow>
         <PanelSectionRow>
           <ButtonItem

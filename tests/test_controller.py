@@ -125,7 +125,7 @@ class ControllerTests(unittest.TestCase):
         self.assertIn("window", result.message.lower())
         self.assertFalse(any("key" in call for call in runner.calls))
 
-    def test_open_launches_app_then_focuses_discovered_window(self):
+    def test_open_waits_for_steam_launched_app_then_focuses_its_window(self):
         sightings = iter(([], [self.process]))
         popen = FakePopen()
         runner = XdotoolRunner(windows=("20",))
@@ -143,9 +143,29 @@ class ControllerTests(unittest.TestCase):
         result = controller.open_app()
 
         self.assertTrue(result.ok)
-        self.assertEqual(popen.calls[0][0], ("/usr/bin/codex-desktop",))
-        self.assertTrue(popen.calls[0][1]["start_new_session"])
-        self.assertEqual(popen.calls[0][1]["env"]["HOME"], "/home/deck")
+        self.assertEqual(popen.calls, [])
+        self.assertIn(
+            ("/usr/bin/xdotool", "windowactivate", "--sync", "20"),
+            runner.calls,
+        )
+
+    def test_voice_waits_for_steam_window_without_spawning_a_hidden_process(self):
+        sightings = iter(([], [self.process]))
+        popen = FakePopen()
+        controller = self._controller(
+            runner=XdotoolRunner(windows=("20",)),
+            processes=lambda: next(sightings, [self.process]),
+            popen=popen,
+            environment_builder=lambda _uid, inherited=None, **_kwargs: {
+                **(inherited or {}),
+                "PATH": "/usr/bin",
+            },
+        )
+
+        result = controller.toggle_voice()
+
+        self.assertTrue(result.ok)
+        self.assertEqual(popen.calls, [])
 
     def test_new_chat_uses_the_apps_fixed_shortcut(self):
         runner = XdotoolRunner(windows=("20",))

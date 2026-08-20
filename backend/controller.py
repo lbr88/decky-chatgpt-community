@@ -21,7 +21,7 @@ class ChatGPTController:
         contract_checker: Callable[[Path], VoiceContract] = check_voice_contract,
         environment_builder: Callable[..., dict[str, str]] = graphical_environment,
         sleep: Callable[[float], None] = time.sleep,
-        launch_attempts: int = 40,
+        launch_attempts: int = 120,
         app_asar: Path = Path("/opt/codex-desktop/resources/app.asar"),
         uid: int | None = None,
     ) -> None:
@@ -48,7 +48,7 @@ class ChatGPTController:
         }
 
     def open_app(self) -> OperationResult:
-        window = self._ensure_window(launch_if_missing=True)
+        window = self._ensure_window()
         if isinstance(window, OperationResult):
             return window
         focus = self._focus(window[0], window[1])
@@ -69,7 +69,7 @@ class ChatGPTController:
         return request_update_check(self._runner)
 
     def _send_shortcut(self, shortcut: str, message: str) -> OperationResult:
-        window = self._ensure_window(launch_if_missing=True)
+        window = self._ensure_window()
         if isinstance(window, OperationResult):
             return window
         environment, window_id = window
@@ -84,42 +84,29 @@ class ChatGPTController:
             return OperationResult(False, "ChatGPT did not accept the keyboard command")
         return OperationResult(True, message)
 
-    def _ensure_window(
-        self, *, launch_if_missing: bool
-    ) -> tuple[dict[str, str], str] | OperationResult:
-        processes = self._process_finder()
-        if not processes and launch_if_missing:
-            environment = self._environment_builder(self._uid)
-            try:
-                self._popen(
-                    ("/usr/bin/codex-desktop",),
-                    env=environment,
-                    stdin=subprocess.DEVNULL,
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                    close_fds=True,
-                    start_new_session=True,
+    def _ensure_window(self) -> tuple[dict[str, str], str] | OperationResult:
+        saw_process = False
+        for attempt in range(self._launch_attempts):
+            processes = self._process_finder()
+            saw_process = saw_process or bool(processes)
+            for process in processes:
+                environment = self._environment_builder(
+                    self._uid,
+                    process.environment,
+                    prefer_gamescope=not bool(process.environment.get("DISPLAY")),
                 )
-            except OSError as error:
-                return OperationResult(False, f"Could not launch ChatGPT Community: {error}")
-            for _ in range(self._launch_attempts):
+                window_id = self._largest_window(environment)
+                if window_id is not None:
+                    return environment, window_id
+            if attempt + 1 < self._launch_attempts:
                 self._sleep(0.25)
-                processes = self._process_finder()
-                if processes:
-                    break
-        if not processes:
-            return OperationResult(False, "ChatGPT Community is not running")
 
-        for process in processes:
-            environment = self._environment_builder(
-                self._uid,
-                process.environment,
-                prefer_gamescope=not bool(process.environment.get("DISPLAY")),
+        if not saw_process:
+            return OperationResult(
+                False,
+                "ChatGPT Community did not start through Steam",
             )
-            window_id = self._largest_window(environment)
-            if window_id is not None:
-                return environment, window_id
-        return OperationResult(False, "Could not find a visible ChatGPT Community window")
+        return OperationResult(False, "Could not find ChatGPT Community's Steam window")
 
     def _largest_window(self, environment: dict[str, str]) -> str | None:
         result = self._xdotool(

@@ -19,7 +19,7 @@ integration can be installed or updated independently.
 
 ## Current status
 
-Version 0.1.3 is the current Steam Deck release. It is verified against ChatGPT
+Version 0.1.4 is the current Steam Deck release. It is verified against ChatGPT
 Community built from official Linux app 26.814.41957.
 
 The official bundle already contains:
@@ -58,16 +58,18 @@ The plugin does not uninstall or replace your working ChatGPT Community app.
 
 ## Use
 
-- **Open ChatGPT** launches or focuses the installed app.
-- **Toggle Voice Mode** starts or stops ChatGPT's live Voice Mode.
-- **New Chat** opens a new ChatGPT conversation.
+- **Open ChatGPT** creates or reuses a Steam shortcut and switches to the app.
+- **Toggle Voice Mode** remembers the game you are playing, briefly switches to
+  ChatGPT, starts or stops its live Voice Mode, and returns to your game.
 - **Check for Updates** asks the existing `codex-update-manager` to check.
 - **Refresh Status** rechecks the package, process, updater, and Voice Mode
   compatibility contract.
 
-The Quick Access menu closes before focus-sensitive commands. Voice Mode is
-disabled if the installed app no longer contains the verified command contract.
-The plugin never falls back to screen coordinates.
+ChatGPT remains running as a background companion after the plugin returns to
+your game, so the voice session can continue while you play. Steam does not
+close the original game. The Quick Access menu closes before focus-sensitive
+commands. Voice Mode is disabled if the installed app no longer contains the
+verified command contract. The plugin never falls back to screen coordinates.
 
 ## Local development
 
@@ -87,11 +89,18 @@ The last command only accepts the `deck` user and only writes to
 
 ## How it works
 
+The Decky frontend creates one native non-Steam shortcut for
+`/usr/bin/codex-desktop` and launches it with `SteamClient.Apps.RunGame`. This
+keeps ChatGPT in Steam's process tree, allowing Gamescope to focus its window.
+For an in-game Voice Mode toggle, the plugin records Steam's currently running
+game, brings ChatGPT forward, invokes the verified app shortcut, then restores
+the recorded game even when the operation fails.
+
 The unprivileged Python backend finds the exact
 `/opt/codex-desktop/ChatGPT` process, reads only its display-related process
 environment, locates the largest visible window whose class is exactly
 `codex-desktop`, focuses that window, and sends the app's own shortcut through
-`xdotool`.
+`xdotool`. It never launches a hidden ChatGPT process itself.
 
 SteamOS can use multiple Xwayland displays in Gaming Mode, so the plugin uses
 the display belonging to ChatGPT rather than assuming `DISPLAY=:0`. If the app
@@ -120,8 +129,9 @@ If the verifier reports missing markers, update this plugin and ChatGPT
 Community. Do not force the shortcut: the compatibility gate is intentionally
 fail closed.
 
-If ChatGPT opens but is not visible in Gaming Mode, add ChatGPT Community as a
-non-Steam shortcut and launch it once from Steam so Gamescope owns its window.
+If the first Voice Mode toggle takes several seconds, let ChatGPT finish
+starting. The plugin waits up to 30 seconds for its Steam-owned window and then
+returns to the game that was already running.
 
 ## License
 
