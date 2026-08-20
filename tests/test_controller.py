@@ -133,6 +133,11 @@ class ControllerTests(unittest.TestCase):
             runner=runner,
             processes=lambda: next(sightings, [self.process]),
             popen=popen,
+            environment_builder=lambda _uid, _inherited=None, **_kwargs: {
+                "HOME": "/home/deck",
+                "PATH": "/usr/bin",
+                "DISPLAY": ":0",
+            },
         )
 
         result = controller.open_app()
