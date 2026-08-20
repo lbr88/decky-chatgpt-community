@@ -11,10 +11,12 @@ class XdotoolRunner:
     def __init__(self, windows=("10", "20")):
         self.windows = windows
         self.calls = []
+        self.environments = []
 
     def __call__(self, args, **kwargs):
         command = tuple(args)
         self.calls.append(command)
+        self.environments.append(kwargs.get("env", {}))
         if command[:4] == (
             "/usr/bin/xdotool",
             "search",
@@ -46,7 +48,15 @@ class ControllerTests(unittest.TestCase):
             {"DISPLAY": ":8", "XAUTHORITY": "/tmp/xauth", "HOME": "/home/deck"},
         )
 
-    def _controller(self, *, runner=None, processes=None, contract=None, popen=None):
+    def _controller(
+        self,
+        *,
+        runner=None,
+        processes=None,
+        contract=None,
+        popen=None,
+        environment_builder=None,
+    ):
         return ChatGPTController(
             runner=runner or XdotoolRunner(),
             process_finder=lambda: [self.process] if processes is None else processes(),
@@ -57,6 +67,11 @@ class ControllerTests(unittest.TestCase):
             launch_attempts=2,
             app_asar=Path("/fake/app.asar"),
             uid=1000,
+            **(
+                {"environment_builder": environment_builder}
+                if environment_builder is not None
+                else {}
+            ),
         )
 
     def test_voice_fails_closed_before_input_when_contract_is_missing(self):
@@ -145,6 +160,28 @@ class ControllerTests(unittest.TestCase):
             ),
             runner.calls,
         )
+
+    def test_masked_process_environment_falls_back_to_gamescope_display(self):
+        runner = XdotoolRunner(windows=("20",))
+        masked_process = AppProcess(88, "/opt/codex-desktop/ChatGPT", {})
+
+        def environment_builder(_uid, _inherited=None, *, prefer_gamescope=True):
+            return {"DISPLAY": ":0"} if prefer_gamescope else {}
+
+        controller = ChatGPTController(
+            runner=runner,
+            process_finder=lambda: [masked_process],
+            contract_checker=lambda _: VoiceContract(True, (), "compatible"),
+            environment_builder=environment_builder,
+            app_asar=Path("/fake/app.asar"),
+            uid=1000,
+        )
+
+        result = controller.toggle_voice()
+
+        self.assertTrue(result.ok)
+        self.assertTrue(runner.environments)
+        self.assertTrue(all(env.get("DISPLAY") == ":0" for env in runner.environments))
 
 
 if __name__ == "__main__":

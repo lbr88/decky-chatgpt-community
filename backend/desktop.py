@@ -50,6 +50,7 @@ def graphical_environment(
     *,
     runtime_dir: Path | None = None,
     gamescope_environment: Path | None = None,
+    prefer_gamescope: bool = True,
 ) -> dict[str, str]:
     inherited = os.environ if inherited is None else inherited
     try:
@@ -63,13 +64,14 @@ def graphical_environment(
     runtime = runtime_dir or Path(f"/run/user/{uid}")
     gamescope = gamescope_environment or runtime / "gamescope-environment"
     result = {key: value for key, value in inherited.items() if _allowed(key)}
-    result.update(
-        {
-            key: value
-            for key, value in parse_environment(gamescope).items()
-            if _allowed(key)
-        }
-    )
+    if prefer_gamescope:
+        result.update(
+            {
+                key: value
+                for key, value in parse_environment(gamescope).items()
+                if _allowed(key)
+            }
+        )
     result.setdefault("HOME", default_home)
     result.setdefault("USER", default_user)
     result.setdefault("LOGNAME", default_user)

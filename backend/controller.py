@@ -19,6 +19,7 @@ class ChatGPTController:
         popen: Callable[..., object] = subprocess.Popen,
         process_finder: Callable[[], list[AppProcess]] = find_app_processes,
         contract_checker: Callable[[Path], VoiceContract] = check_voice_contract,
+        environment_builder: Callable[..., dict[str, str]] = graphical_environment,
         sleep: Callable[[float], None] = time.sleep,
         launch_attempts: int = 40,
         app_asar: Path = Path("/opt/codex-desktop/resources/app.asar"),
@@ -28,6 +29,7 @@ class ChatGPTController:
         self._popen = popen
         self._process_finder = process_finder
         self._contract_checker = contract_checker
+        self._environment_builder = environment_builder
         self._sleep = sleep
         self._launch_attempts = launch_attempts
         self._app_asar = app_asar
@@ -87,7 +89,7 @@ class ChatGPTController:
     ) -> tuple[dict[str, str], str] | OperationResult:
         processes = self._process_finder()
         if not processes and launch_if_missing:
-            environment = graphical_environment(self._uid)
+            environment = self._environment_builder(self._uid)
             try:
                 self._popen(
                     ("/usr/bin/codex-desktop",),
@@ -109,7 +111,11 @@ class ChatGPTController:
             return OperationResult(False, "ChatGPT Community is not running")
 
         for process in processes:
-            environment = graphical_environment(self._uid, process.environment)
+            environment = self._environment_builder(
+                self._uid,
+                process.environment,
+                prefer_gamescope=not bool(process.environment.get("DISPLAY")),
+            )
             window_id = self._largest_window(environment)
             if window_id is not None:
                 return environment, window_id

@@ -76,6 +76,22 @@ class DesktopEnvironmentTests(unittest.TestCase):
             result["DBUS_SESSION_BUS_ADDRESS"], "unix:path=/run/user/1000/bus"
         )
 
+    def test_running_process_display_wins_when_gamescope_overlay_is_disabled(self):
+        with tempfile.TemporaryDirectory() as directory:
+            runtime = Path(directory)
+            gamescope = runtime / "gamescope-environment"
+            gamescope.write_text("DISPLAY=:0\n", encoding="utf-8")
+
+            result = graphical_environment(
+                1000,
+                {"HOME": "/home/deck", "DISPLAY": ":8"},
+                runtime_dir=runtime,
+                gamescope_environment=gamescope,
+                prefer_gamescope=False,
+            )
+
+        self.assertEqual(result["DISPLAY"], ":8")
+
 
 if __name__ == "__main__":
     unittest.main()
