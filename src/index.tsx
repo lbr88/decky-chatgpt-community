@@ -43,7 +43,7 @@ const menuCloseDelay = () =>
 const steamDependencies = (): SteamDependencies => ({
   apps: SteamClient.Apps,
   appStore: window.appStore as unknown as SteamAppStore,
-  navigation: Navigation as unknown as SteamNavigation,
+  steamUiStore: window.SteamUIStore as unknown as SteamNavigation,
   storage: window.localStorage,
 });
 

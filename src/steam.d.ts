@@ -21,6 +21,7 @@ export type SteamApps = {
 
 export type SteamNavigation = {
   MainRunningAppID: number;
+  RunningApps: Array<{ appid: number }>;
   NavigateToRunningApp(): void;
   SetRunningApp(appId: number): void;
 };
@@ -35,7 +36,7 @@ export type SteamAppStore = {
 export type SteamDependencies = {
   apps: SteamApps;
   appStore: SteamAppStore;
-  navigation: SteamNavigation;
+  steamUiStore: SteamNavigation;
   storage: Storage;
 };
 
@@ -43,7 +44,7 @@ export function gameIdFromAppId(appId: number): string;
 
 export function launchChatGPT(
   dependencies: SteamDependencies,
-): Promise<{ appId: number; created: boolean }>;
+): Promise<{ appId: number; created: boolean; running: boolean }>;
 
 export function runWithChatGPTForeground<T>(
   dependencies: SteamDependencies,

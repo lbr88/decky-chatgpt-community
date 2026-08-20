@@ -71,20 +71,25 @@ async function ensureShortcut({ apps, appStore, storage }) {
 
 export async function launchChatGPT(dependencies) {
   const result = await ensureShortcut(dependencies);
-  dependencies.apps.RunGame(
-    gameIdFromAppId(result.appId),
-    "",
-    -1,
-    GAMEPAD_UI_LAUNCH_SOURCE,
+  const running = dependencies.steamUiStore.RunningApps?.some(
+    (app) => normalizedAppId(app.appid) === result.appId,
   );
-  dependencies.navigation.SetRunningApp(result.appId);
-  dependencies.navigation.NavigateToRunningApp();
-  return result;
+  if (!running) {
+    dependencies.apps.RunGame(
+      gameIdFromAppId(result.appId),
+      "",
+      -1,
+      GAMEPAD_UI_LAUNCH_SOURCE,
+    );
+  }
+  dependencies.steamUiStore.SetRunningApp(result.appId);
+  dependencies.steamUiStore.NavigateToRunningApp();
+  return { ...result, running: Boolean(running) };
 }
 
 export async function runWithChatGPTForeground(dependencies, operation) {
   const previousAppId = normalizedAppId(
-    dependencies.navigation.MainRunningAppID,
+    dependencies.steamUiStore.MainRunningAppID,
   );
   const { appId } = await launchChatGPT(dependencies);
 
@@ -95,14 +100,8 @@ export async function runWithChatGPTForeground(dependencies, operation) {
       const previous = dependencies.appStore.GetAppOverviewByAppID(previousAppId);
       const previousGameId = previous?.GetGameID?.();
       if (previousGameId) {
-        dependencies.apps.RunGame(
-          previousGameId,
-          "",
-          -1,
-          GAMEPAD_UI_LAUNCH_SOURCE,
-        );
-        dependencies.navigation.SetRunningApp(previousAppId);
-        dependencies.navigation.NavigateToRunningApp();
+        dependencies.steamUiStore.SetRunningApp(previousAppId);
+        dependencies.steamUiStore.NavigateToRunningApp();
       }
     }
   }

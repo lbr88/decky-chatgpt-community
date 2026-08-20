@@ -19,7 +19,7 @@ integration can be installed or updated independently.
 
 ## Current status
 
-Version 0.1.5 is the current Steam Deck release. It is verified against ChatGPT
+Version 0.1.6 is the current Steam Deck release. It is verified against ChatGPT
 Community built from official Linux app 26.814.41957.
 
 The official bundle already contains:
@@ -96,8 +96,9 @@ The shortcut clears Steam's `LD_PRELOAD` only for the ChatGPT launch because
 Steam's overlay library crashes Electron child processes on the tested SteamOS
 version. Gamescope still owns and presents the app normally.
 For an in-game Voice Mode toggle, the plugin records Steam's currently running
-game, brings ChatGPT forward, invokes the verified app shortcut, then restores
-the recorded game even when the operation fails.
+game, focuses the already-running ChatGPT shortcut without relaunching it,
+invokes the verified app shortcut, then restores the recorded game even when
+the operation fails.
 
 The unprivileged Python backend finds the exact
 `/opt/codex-desktop/ChatGPT` process, reads only its display-related process
@@ -106,9 +107,11 @@ environment, locates the largest visible window whose class is exactly
 `xdotool`. It never launches a hidden ChatGPT process itself.
 
 SteamOS can use multiple Xwayland displays in Gaming Mode, so the plugin uses
-the display belonging to ChatGPT rather than assuming `DISPLAY=:0`. If the app
-is not running, it launches it with SteamOS's Gamescope environment and waits
-for the verified window.
+the display belonging to ChatGPT rather than assuming `DISPLAY=:0`. When
+SteamOS masks a sibling process's environment, the backend checks only the
+numeric Xwayland sockets owned by the active session and still requires the
+exact `codex-desktop` window class. If the app is not running, it launches it
+with SteamOS's Gamescope environment and waits for the verified window.
 
 ## Privacy and security
 

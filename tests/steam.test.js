@@ -48,8 +48,9 @@ function fixture() {
       calls.push(["SetShortcutStartDir", ...args]);
     },
   };
-  const navigation = {
+  const steamUiStore = {
     MainRunningAppID: 570,
+    RunningApps: [],
     NavigateToRunningApp() {
       calls.push(["NavigateToRunningApp"]);
     },
@@ -69,7 +70,7 @@ function fixture() {
     dependencies: {
       apps,
       appStore,
-      navigation,
+      steamUiStore,
       storage: new MemoryStorage(),
     },
     calls,
@@ -117,6 +118,25 @@ test("launchChatGPT creates one Steam shortcut and launches its non-Steam game I
   ]);
 });
 
+test("launchChatGPT focuses a running shortcut without launching it again", async () => {
+  const { dependencies, calls } = fixture();
+  dependencies.storage.setItem(
+    "decky-chatgpt-community:steam-shortcut-app-id",
+    String(0x81234567),
+  );
+  dependencies.steamUiStore.RunningApps = [{ appid: 0x81234567 }];
+
+  const result = await launchChatGPT(dependencies);
+
+  assert.equal(result.appId, 0x81234567);
+  assert.equal(result.running, true);
+  assert.equal(calls.some(([name]) => name === "RunGame"), false);
+  assert.deepEqual(calls.slice(-2), [
+    ["SetRunningApp", 0x81234567],
+    ["NavigateToRunningApp"],
+  ]);
+});
+
 test("runWithChatGPTForeground restores the game after the voice command", async () => {
   const { dependencies, calls } = fixture();
   const events = [];
@@ -135,9 +155,12 @@ test("runWithChatGPTForeground restores the game after the voice command", async
     (call) => call[0] === "RunGame" && call[1] === "570",
   );
   assert.ok(chatLaunch >= 0);
-  assert.ok(gameRestore > chatLaunch);
-  assert.deepEqual(calls.slice(gameRestore, gameRestore + 3), [
-    ["RunGame", "570", "", -1, 100],
+  assert.equal(gameRestore, -1);
+  const gameFocus = calls.findIndex(
+    (call) => call[0] === "SetRunningApp" && call[1] === 570,
+  );
+  assert.ok(gameFocus > chatLaunch);
+  assert.deepEqual(calls.slice(gameFocus, gameFocus + 2), [
     ["SetRunningApp", 570],
     ["NavigateToRunningApp"],
   ]);
@@ -153,14 +176,11 @@ test("runWithChatGPTForeground restores the game when the command fails", async 
     /voice failed/,
   );
 
+  assert.equal(
+    calls.some((call) => call[0] === "RunGame" && call[1] === "570"),
+    false,
+  );
   assert.ok(
-    calls.some(
-      (call) =>
-        call[0] === "RunGame" &&
-        call[1] === "570" &&
-        call[2] === "" &&
-        call[3] === -1 &&
-        call[4] === 100,
-    ),
+    calls.some((call) => call[0] === "SetRunningApp" && call[1] === 570),
   );
 });

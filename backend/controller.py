@@ -90,14 +90,18 @@ class ChatGPTController:
             processes = self._process_finder()
             saw_process = saw_process or bool(processes)
             for process in processes:
-                environment = self._environment_builder(
+                primary_environment = self._environment_builder(
                     self._uid,
                     process.environment,
                     prefer_gamescope=not bool(process.environment.get("DISPLAY")),
                 )
-                window_id = self._largest_window(environment)
-                if window_id is not None:
-                    return environment, window_id
+                for environment in self._display_environments(
+                    primary_environment,
+                    discover=not bool(process.environment.get("DISPLAY")),
+                ):
+                    window_id = self._largest_window(environment)
+                    if window_id is not None:
+                        return environment, window_id
             if attempt + 1 < self._launch_attempts:
                 self._sleep(0.25)
 
@@ -107,6 +111,32 @@ class ChatGPTController:
                 "ChatGPT Community did not start through Steam",
             )
         return OperationResult(False, "Could not find ChatGPT Community's Steam window")
+
+    @staticmethod
+    def _display_environments(
+        primary: dict[str, str], *, discover: bool
+    ) -> list[dict[str, str]]:
+        environments = [primary]
+        if not discover:
+            return environments
+
+        seen = {primary.get("DISPLAY")}
+        sockets = sorted(
+            Path("/tmp/.X11-unix").glob("X*"),
+            key=lambda path: int(path.name[1:]) if path.name[1:].isdigit() else -1,
+        )
+        for socket in sockets:
+            number = socket.name[1:]
+            if not number.isdigit():
+                continue
+            display = f":{number}"
+            if display in seen:
+                continue
+            environment = dict(primary)
+            environment["DISPLAY"] = display
+            environments.append(environment)
+            seen.add(display)
+        return environments
 
     def _largest_window(self, environment: dict[str, str]) -> str | None:
         result = self._xdotool(

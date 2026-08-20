@@ -1,6 +1,7 @@
 import subprocess
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from backend.compatibility import VoiceContract
 from backend.controller import ChatGPTController
@@ -8,8 +9,9 @@ from backend.processes import AppProcess
 
 
 class XdotoolRunner:
-    def __init__(self, windows=("10", "20")):
+    def __init__(self, windows=("10", "20"), windows_by_display=None):
         self.windows = windows
+        self.windows_by_display = windows_by_display
         self.calls = []
         self.environments = []
 
@@ -23,7 +25,15 @@ class XdotoolRunner:
             "--onlyvisible",
             "--class",
         ):
-            return subprocess.CompletedProcess(args, 0, "\n".join(self.windows) + "\n", "")
+            windows = self.windows
+            if self.windows_by_display is not None:
+                windows = self.windows_by_display.get(kwargs.get("env", {}).get("DISPLAY"), ())
+            return subprocess.CompletedProcess(
+                args,
+                0 if windows else 1,
+                "\n".join(windows) + ("\n" if windows else ""),
+                "",
+            )
         if command == ("/usr/bin/xdotool", "getwindowgeometry", "--shell", "10"):
             return subprocess.CompletedProcess(args, 0, "WIDTH=100\nHEIGHT=100\n", "")
         if command == ("/usr/bin/xdotool", "getwindowgeometry", "--shell", "20"):
@@ -207,6 +217,33 @@ class ControllerTests(unittest.TestCase):
         self.assertTrue(result.ok)
         self.assertTrue(runner.environments)
         self.assertTrue(all(env.get("DISPLAY") == ":0" for env in runner.environments))
+
+    def test_masked_process_environment_finds_window_on_secondary_xwayland(self):
+        runner = XdotoolRunner(windows_by_display={":1": ("20",)})
+        masked_process = AppProcess(88, "/opt/codex-desktop/ChatGPT", {})
+        controller = ChatGPTController(
+            runner=runner,
+            process_finder=lambda: [masked_process],
+            contract_checker=lambda _: VoiceContract(True, (), "compatible"),
+            environment_builder=lambda *_args, **_kwargs: {"DISPLAY": ":0"},
+            app_asar=Path("/fake/app.asar"),
+            uid=1000,
+            launch_attempts=1,
+        )
+
+        with patch(
+            "backend.controller.Path.glob",
+            return_value=[Path("/tmp/.X11-unix/X0"), Path("/tmp/.X11-unix/X1")],
+        ):
+            result = controller.toggle_voice()
+
+        self.assertTrue(result.ok)
+        key_environments = [
+            environment
+            for call, environment in zip(runner.calls, runner.environments)
+            if "key" in call
+        ]
+        self.assertEqual(key_environments[0]["DISPLAY"], ":1")
 
 
 if __name__ == "__main__":
