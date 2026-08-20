@@ -19,7 +19,7 @@ integration can be installed or updated independently.
 
 ## Current status
 
-Version 0.1.4 is the current Steam Deck release. It is verified against ChatGPT
+Version 0.1.5 is the current Steam Deck release. It is verified against ChatGPT
 Community built from official Linux app 26.814.41957.
 
 The official bundle already contains:
@@ -92,6 +92,9 @@ The last command only accepts the `deck` user and only writes to
 The Decky frontend creates one native non-Steam shortcut for
 `/usr/bin/codex-desktop` and launches it with `SteamClient.Apps.RunGame`. This
 keeps ChatGPT in Steam's process tree, allowing Gamescope to focus its window.
+The shortcut clears Steam's `LD_PRELOAD` only for the ChatGPT launch because
+Steam's overlay library crashes Electron child processes on the tested SteamOS
+version. Gamescope still owns and presents the app normally.
 For an in-game Voice Mode toggle, the plugin records Steam's currently running
 game, brings ChatGPT forward, invokes the verified app shortcut, then restores
 the recorded game even when the operation fails.

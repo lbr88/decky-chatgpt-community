@@ -2,6 +2,7 @@ export const CHATGPT_SHORTCUT_NAME = "ChatGPT Community";
 
 const CHATGPT_EXECUTABLE = "/usr/bin/codex-desktop";
 const CHATGPT_START_DIRECTORY = "/opt/codex-desktop";
+const CHATGPT_LAUNCH_OPTIONS = 'LD_PRELOAD="" %command%';
 const SHORTCUT_STORAGE_KEY = "decky-chatgpt-community:steam-shortcut-app-id";
 const GAMEPAD_UI_LAUNCH_SOURCE = 100;
 
@@ -51,7 +52,7 @@ async function ensureShortcut({ apps, appStore, storage }) {
         CHATGPT_SHORTCUT_NAME,
         CHATGPT_EXECUTABLE,
         CHATGPT_START_DIRECTORY,
-        "",
+        CHATGPT_LAUNCH_OPTIONS,
       ),
     );
     if (appId === null) {
@@ -63,6 +64,7 @@ async function ensureShortcut({ apps, appStore, storage }) {
   apps.SetShortcutName(appId, CHATGPT_SHORTCUT_NAME);
   apps.SetShortcutExe(appId, CHATGPT_EXECUTABLE);
   apps.SetShortcutStartDir(appId, CHATGPT_START_DIRECTORY);
+  apps.SetAppLaunchOptions(appId, CHATGPT_LAUNCH_OPTIONS);
   rememberAppId(storage, appId);
   return { appId, created };
 }

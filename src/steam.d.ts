@@ -13,6 +13,7 @@ export type SteamApps = {
     launchOption: number,
     launchSource: number,
   ): void;
+  SetAppLaunchOptions(appId: number, launchOptions: string): void;
   SetShortcutExe(appId: number, executable: string): void;
   SetShortcutName(appId: number, name: string): void;
   SetShortcutStartDir(appId: number, directory: string): void;

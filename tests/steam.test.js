@@ -35,6 +35,9 @@ function fixture() {
     SetShortcutExe(...args) {
       calls.push(["SetShortcutExe", ...args]);
     },
+    SetAppLaunchOptions(...args) {
+      calls.push(["SetAppLaunchOptions", ...args]);
+    },
     SetShortcutIcon(...args) {
       calls.push(["SetShortcutIcon", ...args]);
     },
@@ -91,8 +94,23 @@ test("launchChatGPT creates one Steam shortcut and launches its non-Steam game I
     CHATGPT_SHORTCUT_NAME,
     "/usr/bin/codex-desktop",
     "/opt/codex-desktop",
-    "",
+    'LD_PRELOAD="" %command%',
   ]);
+  assert.deepEqual(
+    calls.filter(([name]) => name === "SetAppLaunchOptions"),
+    [
+      [
+        "SetAppLaunchOptions",
+        0x81234567,
+        'LD_PRELOAD="" %command%',
+      ],
+      [
+        "SetAppLaunchOptions",
+        0x81234567,
+        'LD_PRELOAD="" %command%',
+      ],
+    ],
+  );
   assert.deepEqual(calls.filter(([name]) => name === "RunGame"), [
     ["RunGame", gameIdFromAppId(0x81234567), "", -1, 100],
     ["RunGame", gameIdFromAppId(0x81234567), "", -1, 100],
