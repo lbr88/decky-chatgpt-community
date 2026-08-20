@@ -1,6 +1,12 @@
 import asyncio
+import sys
+from pathlib import Path
 
 import decky
+
+PLUGIN_ROOT = Path(__file__).resolve().parent
+if str(PLUGIN_ROOT) not in sys.path:
+    sys.path.insert(0, str(PLUGIN_ROOT))
 
 from backend.controller import ChatGPTController
 

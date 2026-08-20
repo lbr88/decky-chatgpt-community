@@ -1,6 +1,6 @@
 {
   "name": "decky-chatgpt-community",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Control ChatGPT Community and its real Voice Mode from Decky Loader.",
   "type": "module",
   "scripts": {

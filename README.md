@@ -10,7 +10,7 @@ replacement voice implementation.
 
 ## Current status
 
-Version 0.1.0 is an initial Steam Deck release. It is verified against ChatGPT
+Version 0.1.1 is the initial Steam Deck release. It is verified against ChatGPT
 Community built from official Linux app 26.814.41957.
 
 The official bundle already contains:
@@ -35,7 +35,7 @@ The installer for ChatGPT Community is maintained separately at
 
 ## Install
 
-1. Download `decky-chatgpt-community-0.1.0.zip` from the latest GitHub release.
+1. Download the `decky-chatgpt-community-*.zip` file from the latest GitHub release.
 2. Install the zip with Decky Loader's plugin/developer installer.
 3. Restart Decky Loader if the plugin does not appear immediately.
 4. Open Quick Access and select **ChatGPT Community**.

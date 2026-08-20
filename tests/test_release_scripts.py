@@ -48,7 +48,7 @@ class ReleaseScriptTests(unittest.TestCase):
             check=False,
         )
         self.assertEqual(build.returncode, 0, build.stderr)
-        archive = ROOT / "dist-release" / "decky-chatgpt-community-0.1.0.zip"
+        archive = ROOT / "dist-release" / "decky-chatgpt-community-0.1.1.zip"
         self.assertTrue(archive.is_file())
 
         with zipfile.ZipFile(archive) as bundle:
