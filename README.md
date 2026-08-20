@@ -8,6 +8,15 @@ This is not an API client. It uses the ChatGPT app already signed in on your
 Steam Deck. There is no API key, separate account, transcription service, or
 replacement voice implementation.
 
+## Related project
+
+This plugin controls an existing ChatGPT Community installation. Install the
+app first with
+**[ChatGPT Community for Steam Deck](https://github.com/LBR88/chatgpt-steam-deck)**,
+then install this Decky plugin for Gaming Mode Quick Access controls. The two
+repositories remain separate so the app installer and optional Decky
+integration can be installed or updated independently.
+
 ## Current status
 
 Version 0.1.3 is the current Steam Deck release. It is verified against ChatGPT
@@ -29,9 +38,6 @@ patches**. See [the patch policy](patches/README.md).
 - Decky Loader
 - ChatGPT Community installed as the native `codex-desktop` package
 - `/usr/bin/xdotool` (present on the tested SteamOS installation)
-
-The installer for ChatGPT Community is maintained separately at
-[LBR88/chatgpt-steam-deck](https://github.com/LBR88/chatgpt-steam-deck).
 
 ## Install
 
