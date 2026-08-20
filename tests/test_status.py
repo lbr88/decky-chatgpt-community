@@ -1,0 +1,87 @@
+import json
+import subprocess
+import unittest
+
+from backend.status import read_package_info, read_updater_status, request_update_check
+
+
+class CommandRunner:
+    def __init__(self, responses):
+        self.responses = responses
+        self.calls = []
+
+    def __call__(self, args, **kwargs):
+        command = tuple(args)
+        self.calls.append((command, kwargs))
+        return self.responses[command]
+
+
+class StatusTests(unittest.TestCase):
+    def test_package_version_is_parsed_from_pacman(self):
+        runner = CommandRunner(
+            {
+                ("/usr/bin/pacman", "-Q", "codex-desktop"): subprocess.CompletedProcess(
+                    [], 0, "codex-desktop 2026.08.19.171554-1\n", ""
+                )
+            }
+        )
+
+        result = read_package_info(runner)
+
+        self.assertTrue(result.installed)
+        self.assertEqual(result.version, "2026.08.19.171554-1")
+
+    def test_missing_package_is_not_an_exception(self):
+        runner = CommandRunner(
+            {
+                ("/usr/bin/pacman", "-Q", "codex-desktop"): subprocess.CompletedProcess(
+                    [], 1, "", "package 'codex-desktop' was not found"
+                )
+            }
+        )
+
+        result = read_package_info(runner)
+
+        self.assertFalse(result.installed)
+        self.assertIsNone(result.version)
+
+    def test_updater_status_requires_a_json_object(self):
+        valid = {"state": "idle", "updateAvailable": False}
+        runner = CommandRunner(
+            {
+                (
+                    "/usr/bin/codex-update-manager",
+                    "status",
+                    "--json",
+                ): subprocess.CompletedProcess([], 0, json.dumps(valid), "")
+            }
+        )
+
+        self.assertEqual(read_updater_status(runner), valid)
+
+        invalid_runner = CommandRunner(
+            {
+                (
+                    "/usr/bin/codex-update-manager",
+                    "status",
+                    "--json",
+                ): subprocess.CompletedProcess([], 0, "[]", "")
+            }
+        )
+        self.assertIsNone(read_updater_status(invalid_runner))
+
+    def test_update_check_uses_fixed_command_and_reports_failure(self):
+        command = ("/usr/bin/codex-update-manager", "check-now")
+        runner = CommandRunner(
+            {command: subprocess.CompletedProcess([], 2, "", "network unavailable")}
+        )
+
+        result = request_update_check(runner)
+
+        self.assertFalse(result.ok)
+        self.assertIn("network unavailable", result.message)
+        self.assertEqual(runner.calls[0][0], command)
+
+
+if __name__ == "__main__":
+    unittest.main()

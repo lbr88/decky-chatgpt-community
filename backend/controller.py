@@ -1,0 +1,167 @@
+import os
+import subprocess
+import time
+from collections.abc import Callable
+from pathlib import Path
+
+from .compatibility import VoiceContract, check_voice_contract
+from .desktop import graphical_environment
+from .models import OperationResult
+from .processes import AppProcess, find_app_processes
+from .status import read_package_info, read_updater_status, request_update_check
+
+
+class ChatGPTController:
+    def __init__(
+        self,
+        *,
+        runner: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
+        popen: Callable[..., object] = subprocess.Popen,
+        process_finder: Callable[[], list[AppProcess]] = find_app_processes,
+        contract_checker: Callable[[Path], VoiceContract] = check_voice_contract,
+        sleep: Callable[[float], None] = time.sleep,
+        launch_attempts: int = 40,
+        app_asar: Path = Path("/opt/codex-desktop/resources/app.asar"),
+        uid: int | None = None,
+    ) -> None:
+        self._runner = runner
+        self._popen = popen
+        self._process_finder = process_finder
+        self._contract_checker = contract_checker
+        self._sleep = sleep
+        self._launch_attempts = launch_attempts
+        self._app_asar = app_asar
+        self._uid = os.getuid() if uid is None else uid
+
+    def status(self) -> dict[str, object]:
+        package = read_package_info(self._runner)
+        contract = self._contract_checker(self._app_asar)
+        return {
+            "installed": package.installed,
+            "version": package.version,
+            "running": bool(self._process_finder()),
+            "voiceCompatible": contract.compatible,
+            "voiceMessage": contract.message,
+            "updater": read_updater_status(self._runner),
+        }
+
+    def open_app(self) -> OperationResult:
+        window = self._ensure_window(launch_if_missing=True)
+        if isinstance(window, OperationResult):
+            return window
+        focus = self._focus(window[0], window[1])
+        if not focus.ok:
+            return focus
+        return OperationResult(True, "ChatGPT Community is open")
+
+    def toggle_voice(self) -> OperationResult:
+        contract = self._contract_checker(self._app_asar)
+        if not contract.compatible:
+            return OperationResult(False, contract.message)
+        return self._send_shortcut("ctrl+shift+v", "Voice Mode toggled")
+
+    def new_chat(self) -> OperationResult:
+        return self._send_shortcut("ctrl+n", "New ChatGPT conversation opened")
+
+    def check_updates(self) -> OperationResult:
+        return request_update_check(self._runner)
+
+    def _send_shortcut(self, shortcut: str, message: str) -> OperationResult:
+        window = self._ensure_window(launch_if_missing=True)
+        if isinstance(window, OperationResult):
+            return window
+        environment, window_id = window
+        focus = self._focus(environment, window_id)
+        if not focus.ok:
+            return focus
+        result = self._xdotool(
+            ("key", "--window", window_id, "--clearmodifiers", shortcut),
+            environment,
+        )
+        if result is None or result.returncode != 0:
+            return OperationResult(False, "ChatGPT did not accept the keyboard command")
+        return OperationResult(True, message)
+
+    def _ensure_window(
+        self, *, launch_if_missing: bool
+    ) -> tuple[dict[str, str], str] | OperationResult:
+        processes = self._process_finder()
+        if not processes and launch_if_missing:
+            environment = graphical_environment(self._uid)
+            try:
+                self._popen(
+                    ("/usr/bin/codex-desktop",),
+                    env=environment,
+                    stdin=subprocess.DEVNULL,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    close_fds=True,
+                    start_new_session=True,
+                )
+            except OSError as error:
+                return OperationResult(False, f"Could not launch ChatGPT Community: {error}")
+            for _ in range(self._launch_attempts):
+                self._sleep(0.25)
+                processes = self._process_finder()
+                if processes:
+                    break
+        if not processes:
+            return OperationResult(False, "ChatGPT Community is not running")
+
+        for process in processes:
+            environment = graphical_environment(self._uid, process.environment)
+            window_id = self._largest_window(environment)
+            if window_id is not None:
+                return environment, window_id
+        return OperationResult(False, "Could not find a visible ChatGPT Community window")
+
+    def _largest_window(self, environment: dict[str, str]) -> str | None:
+        result = self._xdotool(
+            ("search", "--onlyvisible", "--class", "^codex-desktop$"),
+            environment,
+        )
+        if result is None or result.returncode != 0:
+            return None
+        candidates: list[tuple[int, str]] = []
+        for window_id in result.stdout.split():
+            if not window_id.isdigit():
+                continue
+            geometry = self._xdotool(
+                ("getwindowgeometry", "--shell", window_id), environment
+            )
+            if geometry is None or geometry.returncode != 0:
+                continue
+            values = {}
+            for line in geometry.stdout.splitlines():
+                if "=" in line:
+                    key, value = line.split("=", 1)
+                    values[key] = value
+            try:
+                area = int(values["WIDTH"]) * int(values["HEIGHT"])
+            except (KeyError, ValueError):
+                continue
+            candidates.append((area, window_id))
+        return max(candidates)[1] if candidates else None
+
+    def _focus(self, environment: dict[str, str], window_id: str) -> OperationResult:
+        result = self._xdotool(("windowactivate", "--sync", window_id), environment)
+        if result is None or result.returncode != 0:
+            result = self._xdotool(("windowfocus", "--sync", window_id), environment)
+        if result is None or result.returncode != 0:
+            return OperationResult(False, "Could not focus ChatGPT Community")
+        return OperationResult(True, "ChatGPT Community focused")
+
+    def _xdotool(
+        self, arguments: tuple[str, ...], environment: dict[str, str]
+    ) -> subprocess.CompletedProcess[str] | None:
+        try:
+            return self._runner(
+                ("/usr/bin/xdotool", *arguments),
+                env=environment,
+                capture_output=True,
+                text=True,
+                timeout=5,
+                check=False,
+            )
+        except (OSError, subprocess.SubprocessError):
+            return None
