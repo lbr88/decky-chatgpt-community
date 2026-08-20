@@ -108,10 +108,10 @@ environment, locates the largest visible window whose class is exactly
 
 SteamOS can use multiple Xwayland displays in Gaming Mode, so the plugin uses
 the display belonging to ChatGPT rather than assuming `DISPLAY=:0`. When
-SteamOS masks a sibling process's environment, the backend checks only the
-numeric Xwayland sockets owned by the active session and still requires the
-exact `codex-desktop` window class. If the app is not running, it launches it
-with SteamOS's Gamescope environment and waits for the verified window.
+SteamOS masks a sibling process's environment, the backend checks only numeric
+Xwayland sockets available to the session and still requires the exact
+`codex-desktop` window class. If the app is not running, it launches it with
+SteamOS's Gamescope environment and waits for the verified window.
 
 ## Privacy and security
 
