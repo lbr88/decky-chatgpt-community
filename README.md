@@ -10,7 +10,7 @@ replacement voice implementation.
 
 ## Current status
 
-Version 0.1.1 is the initial Steam Deck release. It is verified against ChatGPT
+Version 0.1.2 is the current Steam Deck release. It is verified against ChatGPT
 Community built from official Linux app 26.814.41957.
 
 The official bundle already contains:

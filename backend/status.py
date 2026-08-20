@@ -2,6 +2,7 @@ import json
 import subprocess
 from collections.abc import Callable
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 from .models import OperationResult
@@ -23,14 +24,29 @@ def _run(runner: Runner, command: tuple[str, ...]) -> subprocess.CompletedProces
         return None
 
 
-def read_package_info(runner: Runner = subprocess.run) -> PackageInfo:
+def read_package_info(
+    runner: Runner = subprocess.run,
+    *,
+    app_executable: Path = Path("/opt/codex-desktop/ChatGPT"),
+    metadata_path: Path = Path(
+        "/opt/codex-desktop/resources/linux-package-metadata.json"
+    ),
+) -> PackageInfo:
     result = _run(runner, ("/usr/bin/pacman", "-Q", "codex-desktop"))
-    if result is None or result.returncode != 0:
-        return PackageInfo(False, None)
-    fields = result.stdout.strip().split()
-    if len(fields) != 2 or fields[0] != "codex-desktop":
-        return PackageInfo(False, None)
-    return PackageInfo(True, fields[1])
+    if result is not None and result.returncode == 0:
+        fields = result.stdout.strip().split()
+        if len(fields) == 2 and fields[0] == "codex-desktop":
+            return PackageInfo(True, fields[1])
+
+    try:
+        if not app_executable.is_file():
+            return PackageInfo(False, None)
+        metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return PackageInfo(True, None)
+
+    version = metadata.get("version") if isinstance(metadata, dict) else None
+    return PackageInfo(True, version if isinstance(version, str) and version else None)
 
 
 def read_updater_status(runner: Runner = subprocess.run) -> dict[str, Any] | None:

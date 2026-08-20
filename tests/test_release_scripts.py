@@ -1,3 +1,4 @@
+import json
 import os
 import subprocess
 import sys
@@ -48,7 +49,12 @@ class ReleaseScriptTests(unittest.TestCase):
             check=False,
         )
         self.assertEqual(build.returncode, 0, build.stderr)
-        archive = ROOT / "dist-release" / "decky-chatgpt-community-0.1.1.zip"
+        package = json.loads((ROOT / "package.json").read_text(encoding="utf-8"))
+        archive = (
+            ROOT
+            / "dist-release"
+            / f"decky-chatgpt-community-{package['version']}.zip"
+        )
         self.assertTrue(archive.is_file())
 
         with zipfile.ZipFile(archive) as bundle:

@@ -1,6 +1,8 @@
 import json
 import subprocess
+import tempfile
 import unittest
+from pathlib import Path
 
 from backend.status import read_package_info, read_updater_status, request_update_check
 
@@ -26,7 +28,12 @@ class StatusTests(unittest.TestCase):
             }
         )
 
-        result = read_package_info(runner)
+        with tempfile.TemporaryDirectory() as directory:
+            result = read_package_info(
+                runner,
+                app_executable=Path(directory, "missing-ChatGPT"),
+                metadata_path=Path(directory, "missing-metadata.json"),
+            )
 
         self.assertTrue(result.installed)
         self.assertEqual(result.version, "2026.08.19.171554-1")
@@ -40,10 +47,39 @@ class StatusTests(unittest.TestCase):
             }
         )
 
-        result = read_package_info(runner)
+        with tempfile.TemporaryDirectory() as directory:
+            result = read_package_info(
+                runner,
+                app_executable=Path(directory, "missing-ChatGPT"),
+                metadata_path=Path(directory, "missing-metadata.json"),
+            )
 
         self.assertFalse(result.installed)
         self.assertIsNone(result.version)
+
+    def test_verified_payload_is_used_when_decky_cannot_read_pacman_database(self):
+        runner = CommandRunner(
+            {
+                ("/usr/bin/pacman", "-Q", "codex-desktop"): subprocess.CompletedProcess(
+                    [], 1, "", "package database unavailable"
+                )
+            }
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            executable = Path(directory, "ChatGPT")
+            metadata = Path(directory, "linux-package-metadata.json")
+            executable.write_bytes(b"official payload")
+            executable.chmod(0o755)
+            metadata.write_text('{"version":"26.814.41957"}', encoding="utf-8")
+
+            result = read_package_info(
+                runner,
+                app_executable=executable,
+                metadata_path=metadata,
+            )
+
+        self.assertTrue(result.installed)
+        self.assertEqual(result.version, "26.814.41957")
 
     def test_updater_status_requires_a_json_object(self):
         valid = {"state": "idle", "updateAvailable": False}
